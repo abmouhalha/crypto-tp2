@@ -78,6 +78,19 @@ public:
 
 };
 
+
+// Fonction utilitaire pour trouver l'indice d'une lettre (A=0, B=1, ..., Z=25)
+int char_to_index(char c) {
+    return c - 'A';
+}
+
+
+// Fonction utilitaire pour convertir un index en caractère
+char index_to_char(int index) {
+    return 'A' + (index % ALPHABET_SIZE);
+}
+
+
 //////////////////////////////////////////////////////////////////
 //                             MAIN                             //
 //////////////////////////////////////////////////////////////////
