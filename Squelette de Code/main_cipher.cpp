@@ -20,33 +20,62 @@ public:
   }
  
   string encrypt(string text)
-  {
-    string out;
-
-    // Modifying all characters other than uppercase : lowercase -> uppercase, other -> delete
-    for(unsigned int i = 0; i < text.length(); ++i)
     {
-      if(text[i] >= 'A' && text[i] <= 'Z')
-        out += text[i];
-      else if(text[i] >= 'a' && text[i] <= 'z')
-        out += text[i] + 'A' - 'a';
+        string out;
+        unsigned int keyIndex = 0; // Pour garder la trace de la position dans la clé
+
+        for (unsigned int i = 0; i < text.length(); ++i)
+        {
+            char currentChar = text[i];
+
+            if (currentChar >= 'A' && currentChar <= 'Z')
+            {
+                out += (currentChar - 'A' + key[keyIndex] - 'A') % 26 + 'A'; // Chiffrement pour les majuscules
+                keyIndex = (keyIndex + 1) % key.length(); // Passe à la lettre suivante de la clé
+            }
+            else if (currentChar >= 'a' && currentChar <= 'z')
+            {
+                out += (currentChar - 'a' + key[keyIndex] - 'A') % 26 + 'a'; // Chiffrement pour les minuscules
+                keyIndex = (keyIndex + 1) % key.length(); // Passe à la lettre suivante de la clé
+            }
+            else
+            {
+                out += currentChar; // Ne change pas les caractères non alphabétiques
+            }
+        }
+
+        return out;
     }
 
-    // ADD THE VIGENERE CRYPTION 	
- 
-    return out;
-  }
- 
   string decrypt(string text)
-  {
+{
     string out;
+    unsigned int keyIndex = 0; // Pour garder la trace de la position dans la clé
 
-    // TO REMOVE
-    out = text;
+    for (unsigned int i = 0; i < text.length(); ++i)
+    {
+        char currentChar = text[i];
 
-    // ADD THE VIGENERE DECRYPTION 
+        if (currentChar >= 'A' && currentChar <= 'Z')
+        {
+            out += (currentChar - 'A' - (key[keyIndex] - 'A') + 26) % 26 + 'A'; // Déchiffrement pour les majuscules
+            keyIndex = (keyIndex + 1) % key.length(); // Passe à la lettre suivante de la clé
+        }
+        else if (currentChar >= 'a' && currentChar <= 'z')
+        {
+            out += (currentChar - 'a' - (key[keyIndex] - 'A') + 26) % 26 + 'a'; // Déchiffrement pour les minuscules
+            keyIndex = (keyIndex + 1) % key.length(); // Passe à la lettre suivante de la clé
+        }
+        else
+        {
+            out += currentChar; // Ne change pas les caractères non alphabétiques
+            // Ne pas incrémenter keyIndex ici
+        }
+    }
+
     return out;
-  }
+}
+
 };
 
 //////////////////////////////////////////////////////////////////
@@ -70,9 +99,9 @@ int main()
   string encrypted_fr = cipher.encrypt(original_fr);
   string decrypted_fr = cipher.decrypt(encrypted_fr);
  
-  cout << original_fr << endl;
-  cout << "Encrypted: " << encrypted_fr << endl;
-  cout << "Decrypted: " << decrypted_fr << endl;
+  //cout << original_fr << endl;
+  //cout << "Encrypted: " << encrypted_fr << endl;
+  //cout << "Decrypted: " << decrypted_fr << endl;
 
 }
 
