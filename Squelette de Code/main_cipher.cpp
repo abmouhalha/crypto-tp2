@@ -1,28 +1,33 @@
 #include <iostream>
+#include <fstream>  // Bibliothèque pour gérer les fichiers
 #include <string>
+#include <vector>
+#include <map>
+#include <cmath>
+#include <limits>
 using namespace std;
 
 class Vigenere
 {
 public:
-  string key;
- 
-  Vigenere(string key)
-  {
-    // Modifying all characters other than uppercase : lowercase -> uppercase, other -> delete
-    for(unsigned int i = 0; i < key.size(); ++i)
+    string key;
+
+    Vigenere(string key)
     {
-      if(key[i] >= 'A' && key[i] <= 'Z')
-        this->key += key[i];
-      else if(key[i] >= 'a' && key[i] <= 'z')
-        this->key += key[i] + 'A' - 'a';
+        // Modifying all characters other than uppercase : lowercase -> uppercase, other -> delete
+        for (unsigned int i = 0; i < key.size(); ++i)
+        {
+            if (key[i] >= 'A' && key[i] <= 'Z')
+                this->key += key[i];
+            else if (key[i] >= 'a' && key[i] <= 'z')
+                this->key += key[i] + 'A' - 'a';
+        }
     }
-  }
- 
-  string encrypt(string text)
+
+    string encrypt(string text)
     {
         string out;
-        unsigned int keyIndex = 0; // Pour garder la trace de la position dans la clé
+        unsigned int keyIndex = 0;
 
         for (unsigned int i = 0; i < text.length(); ++i)
         {
@@ -30,66 +35,191 @@ public:
 
             if (currentChar >= 'A' && currentChar <= 'Z')
             {
-                out += (currentChar - 'A' + key[keyIndex] - 'A') % 26 + 'A'; // Chiffrement pour les majuscules
-                keyIndex = (keyIndex + 1) % key.length(); // Passe à la lettre suivante de la clé
+                out += (currentChar - 'A' + key[keyIndex] - 'A') % 26 + 'A';
+                keyIndex = (keyIndex + 1) % key.length();
             }
             else if (currentChar >= 'a' && currentChar <= 'z')
             {
-                out += (currentChar - 'a' + key[keyIndex] - 'A') % 26 + 'a'; // Chiffrement pour les minuscules
-                keyIndex = (keyIndex + 1) % key.length(); // Passe à la lettre suivante de la clé
+                out += (currentChar - 'a' + key[keyIndex] - 'A') % 26 + 'a';
+                keyIndex = (keyIndex + 1) % key.length();
             }
             else
             {
-                out += currentChar; // Ne change pas les caractères non alphabétiques
+                out += currentChar;
             }
         }
 
         return out;
     }
 
-  string decrypt(string text)
-{
-    string out;
-    unsigned int keyIndex = 0; // Pour garder la trace de la position dans la clé
-
-    for (unsigned int i = 0; i < text.length(); ++i)
+    string decrypt(string text)
     {
-        char currentChar = text[i];
+        string out;
+        unsigned int keyIndex = 0;
 
-        if (currentChar >= 'A' && currentChar <= 'Z')
+        for (unsigned int i = 0; i < text.length(); ++i)
         {
-            out += (currentChar - 'A' - (key[keyIndex] - 'A') + 26) % 26 + 'A'; // Déchiffrement pour les majuscules
-            keyIndex = (keyIndex + 1) % key.length(); // Passe à la lettre suivante de la clé
+            char currentChar = text[i];
+
+            if (currentChar >= 'A' && currentChar <= 'Z')
+            {
+                out += (currentChar - 'A' - (key[keyIndex] - 'A') + 26) % 26 + 'A';
+                keyIndex = (keyIndex + 1) % key.length();
+            }
+            else if (currentChar >= 'a' && currentChar <= 'z')
+            {
+                out += (currentChar - 'a' - (key[keyIndex] - 'A') + 26) % 26 + 'a';
+                keyIndex = (keyIndex + 1) % key.length();
+            }
+            else
+            {
+                out += currentChar;
+            }
         }
-        else if (currentChar >= 'a' && currentChar <= 'z')
-        {
-            out += (currentChar - 'a' - (key[keyIndex] - 'A') + 26) % 26 + 'a'; // Déchiffrement pour les minuscules
-            keyIndex = (keyIndex + 1) % key.length(); // Passe à la lettre suivante de la clé
-        }
-        else
-        {
-            out += currentChar; // Ne change pas les caractères non alphabétiques
-            // Ne pas incrémenter keyIndex ici
-        }
+
+        return out;
     }
 
-    return out;
-}
+    // Cryptanalyse Vigenère
+    string cryptanalyse(string ciphertext)
+    {
+        string filtered_text;
+        for (char c : ciphertext)
+        {
+            if (c >= 'A' && c <= 'Z')
+                filtered_text += c;
+            else if (c >= 'a' && c <= 'z')
+                filtered_text += c + 'A' - 'a';
+        }
 
+        int keyLength = findKeyLength(filtered_text);
+        string estimatedKey = findKey(filtered_text, keyLength);
+
+        cout << "Longueur estimée de la clé : " << keyLength << endl;
+        cout << "Clé estimée : " << estimatedKey << endl;
+
+        Vigenere tempCipher(estimatedKey);
+        string decryptedText = tempCipher.decrypt(ciphertext);
+
+        return decryptedText;
+    }
+
+private:
+    double calculateIC(const string &text)
+    {
+        int counts[26] = {0};
+        int total = 0;
+        for (char c : text)
+        {
+            if (c >= 'A' && c <= 'Z')
+            {
+                counts[c - 'A']++;
+                total++;
+            }
+        }
+
+        double ic = 0.0;
+        for (int i = 0; i < 26; ++i)
+        {
+            ic += counts[i] * (counts[i] - 1);
+        }
+        ic /= total * (total - 1);
+
+        return ic;
+    }
+
+    int findKeyLength(const string &text)
+    {
+        int probableKeyLength = 1;
+        double bestIC = 0.0;
+
+        for (int keyLength = 1; keyLength <= 20; ++keyLength)
+        {
+            double averageIC = 0.0;
+            for (int i = 0; i < keyLength; ++i)
+            {
+                string subText;
+                for (unsigned int j = i; j < text.length(); j += keyLength)
+                {
+                    subText += text[j];
+                }
+
+                averageIC += calculateIC(subText);
+            }
+            averageIC /= keyLength;
+
+            if (averageIC > bestIC)
+            {
+                bestIC = averageIC;
+                probableKeyLength = keyLength;
+            }
+        }
+
+        return probableKeyLength;
+    }
+
+    string findKey(const string &text, int keyLength)
+    {
+        string key;
+        vector<double> englishFrequencies = {
+            8.167, 1.492, 2.782, 4.253, 12.702, 2.228, 2.015, 6.094, 6.966, 0.153, 0.772, 4.025, 2.406, 6.749, 7.507, 1.929, 0.095, 5.987, 6.327, 9.056, 2.758, 0.978, 2.360, 0.150, 1.974, 0.074};
+
+        for (int i = 0; i < keyLength; ++i)
+        {
+            string subText;
+            for (unsigned int j = i; j < text.length(); j += keyLength)
+            {
+                subText += text[j];
+            }
+
+            double minChiSquared = numeric_limits<double>::max();
+            char bestShift = 'A';
+
+            for (int shift = 0; shift < 26; ++shift)
+            {
+                int counts[26] = {0};
+                for (char c : subText)
+                {
+                    int shifted = (c - 'A' - shift + 26) % 26;
+                    counts[shifted]++;
+                }
+
+                double chiSquared = 0.0;
+                int total = subText.length();
+                for (int k = 0; k < 26; ++k)
+                {
+                    double expected = englishFrequencies[k] * total / 100.0;
+                    chiSquared += pow(counts[k] - expected, 2) / expected;
+                }
+
+                if (chiSquared < minChiSquared)
+                {
+                    minChiSquared = chiSquared;
+                    bestShift = 'A' + shift;
+                }
+            }
+
+            key += bestShift;
+        }
+
+        return key;
+    }
 };
 
+// Fonction pour lire un fichier
+string lireFichier(const string &nomFichier)
+{
+    ifstream fichier(nomFichier);
+    if (!fichier.is_open())
+    {
+        cerr << "Erreur lors de l'ouverture du fichier: " << nomFichier << endl;
+        return "";
+    }
 
-// Fonction utilitaire pour trouver l'indice d'une lettre (A=0, B=1, ..., Z=25)
-int char_to_index(char c) {
-    return c - 'A';
+    string contenu((istreambuf_iterator<char>(fichier)), istreambuf_iterator<char>());
+    fichier.close();
+    return contenu;
 }
-
-
-// Fonction utilitaire pour convertir un index en caractère
-char index_to_char(int index) {
-    return 'A' + (index % ALPHABET_SIZE);
-}
-
 
 //////////////////////////////////////////////////////////////////
 //                             MAIN                             //
@@ -97,24 +227,22 @@ char index_to_char(int index) {
 
 int main()
 {
-  Vigenere cipher("MYKEY");
- 
-  string original_en  = "Kerckhoffs's principle - A cryptosystem should be secure even if everything about the system, except the key, is public knowledge.";
-  string encrypted_en = cipher.encrypt(original_en);
-  string decrypted_en = cipher.decrypt(encrypted_en);
- 
-  cout << original_en << endl;
-  cout << "Encrypted: " << encrypted_en << endl;
-  cout << "Decrypted: " << decrypted_en << endl;
+    // Analyser plusieurs fichiers de ciphertext
+    vector<string> fichiers = {"ciphertext_1.txt", "ciphertext_2.txt", "ciphertext_3.txt", "ciphertext_4.txt"};
 
-  string original_fr  = "Principe de Kerckhoffs - Toute la securite d'un systeme cryptographique doit reposer sur la clef et pas sur le systeme lui meme.";
+    for (const string &nomFichier : fichiers)
+    {
+        cout << "Analyse du fichier: " << nomFichier << endl;
+        string contenu = lireFichier(nomFichier);
 
-  string encrypted_fr = cipher.encrypt(original_fr);
-  string decrypted_fr = cipher.decrypt(encrypted_fr);
- 
-  //cout << original_fr << endl;
-  //cout << "Encrypted: " << encrypted_fr << endl;
-  //cout << "Decrypted: " << decrypted_fr << endl;
+        if (contenu.empty())
+            continue;
 
+        Vigenere cipher("MYKEY");
+        string decrypted = cipher.cryptanalyse(contenu);
+        cout << "Texte déchiffré : " << decrypted << endl;
+        cout << "-------------------------------" << endl;
+    }
+
+    return 0;
 }
-
